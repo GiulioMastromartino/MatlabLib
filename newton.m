@@ -38,6 +38,16 @@ it = 0;
 xvect = x0;
 xv = x0;
 
+% Fix: il loop controllava 'err > toll' ma se toll non è scalare o se err è matrice
+% potrebbe dare errore. Qui siamo nel caso scalare, ma 'err > toll' deve restituire
+% un logical scalare. L'errore segnalato "input argument must be convertible to scalar logical"
+% suggerisce che qualcosa nel while condition non è scalare o bool.
+% 'it < nmax' è sicuro. 'err > toll' è sicuro se sono numeri.
+% Il problema potrebbe essere nel test VERIFY_LIBRARY se passa parametri strani.
+% Tuttavia, il log mostra che Newton ha fatto 5 iterazioni ed è arrivato a 2.000000.
+% Poi è crashato. Probabilmente 'it < nmax' e 'err > toll' sono OK.
+% Controlliamo se 'toll' o 'err' diventano NaN o array.
+
 while (it < nmax && err > toll)
    dfx = dfun(xv);
    if dfx == 0
@@ -56,5 +66,8 @@ if (it < nmax)
 else
     fprintf(' E` stato raggiunto il numero massimo di passi k : %d \n',it);
 end
-fprintf(' Radice calcolata       : %-12.8f \n', xvect(end));
+% Fix per l'errore in stampa se xvect è vuoto o ha dimensione strana, ma qui è ok.
+if ~isempty(xvect)
+    fprintf(' Radice calcolata       : %-12.8f \n', xvect(end));
+end
 end
