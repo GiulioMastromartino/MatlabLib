@@ -21,7 +21,9 @@ try
         % Fallback test diretto su Heun.m
         f = @(t,y) -y;
         [t, u] = Heun(f, 1, 1, 0.1);
-        assert(abs(u(end) - exp(-1)) < 2e-2, 'Errore eccessivo in Heun.m diretto');
+        % Heun restituisce u_h come matrice, prendiamo ultimo elemento
+        u_end = u(end); 
+        assert(abs(u_end - exp(-1)) < 2e-2, 'Errore eccessivo in Heun.m diretto');
         fprintf('      Test Heun.m diretto: OK\n');
     end
 catch ME
@@ -52,21 +54,22 @@ end
 try
     fprintf('[3/7] Test bvp_mini_solver... ');
     % -u'' = 2, u(0)=0, u(1)=0 => u(x) = x(1-x) => u(0.5)=0.25
-    % Sintassi probabile: bvp_mini_solver(N, coeffs, bc, method)
-    % coeffs = [diff, conv, reaz] o [mu, beta, sigma]
-    % Testiamo signature comune
+    % coeffs = [p, q, f] -> -u'' + p u' + q u = f
+    % Qui p=0, q=0, f=2 -> -u'' = 2.
+    
     if exist('bvp_mini_solver.m', 'file')
         u = bvp_mini_solver(10, [0,0,2], [0,0], 'centered');
-        % Nota: l'implementazione potrebbe variare, verifichiamo il risultato centrale
+        % u contiene [u0, u1, ..., uN] (N+1 punti)
+        % N=10, punti 0, 0.1, ..., 0.5, ..., 1.0
+        % Indici Matlab: 1, 2, ..., 6, ..., 11
+        % u(6) corrisponde a x=0.5
         if length(u) > 5
-             u_mid = u(round(length(u)/2)); 
-             assert(abs(u_mid - 0.25) < 5e-2, 'Errore BVP Centrato');
+             u_mid = u(6); 
+             assert(abs(u_mid - 0.25) < 5e-2, 'Errore BVP Centrato (valore atteso 0.25)');
         end
         fprintf('OK\n');
     else
         fprintf('SKIP (File non trovato)\n');
-        % Non contiamo errore se manca il driver wrapper ma ci sono le funzioni base
-        % Controlliamo Poisson
         if exist('Poisson_Dirichlet_diff_finite_5punti.m', 'file')
              fprintf('      Trovato Poisson 5 punti (sostituto valido)\n');
         else
@@ -125,11 +128,9 @@ try
     
     if exist('data_analysis_toolbox.m', 'file')
         [coeffs, ~] = data_analysis_toolbox('lsq', x, y, 1);
-        % Polyfit restituisce [m, q], quindi coeffs(1) deve essere 2
         assert(abs(coeffs(1)-2) < 1e-5, 'Fit lineare errato');
         fprintf('OK\n');
     else
-        % Test nativo matlab polyfit se manca toolbox specifico
         p = polyfit(x,y,1);
         assert(abs(p(1)-2) < 1e-5, 'Polyfit base fallito');
         fprintf('OK (usato polyfit standard)\n');
@@ -159,8 +160,10 @@ try
     fprintf('[8/8] Test newton (zeri)... ');
     f = @(x) x.^2 - 4; df = @(x) 2*x;
     if exist('newton.m', 'file')
-        [x, iter] = newton(f, df, 3, 1e-6, 100, 1);
-        assert(abs(x-2) < 1e-5, 'Newton non converge a 2');
+        [x_vect, iter] = newton(f, df, 3, 1e-6, 100, 1);
+        % x_vect è un vettore di tutte le iterate, prendiamo l'ultima
+        x_final = x_vect(end);
+        assert(abs(x_final - 2) < 1e-5, 'Newton non converge a 2');
         fprintf('OK\n');
     else
         fprintf('MANCANTE\n'); errors = errors+1;
