@@ -1,6 +1,6 @@
-function [xvect,it] = newton(x0,nmax,toll,fun,dfun,mol)
+function [xvect,it] = newton(fun,dfun,x0,toll,nmax,mol)
 
-% [xvect,it] = newton(x0,nmax,toll,fun,dfun,mol) 
+% [xvect,it] = newton(fun,dfun,x0,toll,nmax,mol)
 %
 % Metodo di Newton per l'approssimazione di uno zero (radice) della 
 % funzione fun. Se la molteplicità (mol) dello zero da approssimare è 
@@ -8,10 +8,10 @@ function [xvect,it] = newton(x0,nmax,toll,fun,dfun,mol)
 % Criterio d'arresto basato sulla differenza tra due iterate successive.
 %
 % Parametri di ingresso:
-% x0          Iterata iniziale
-% nmax        Numero massimo di iterazioni
-% toll        Tolleranza sul criterio d'arresto (diff. iter. succ.)
 % fun, dfun   Inline functions contenenti la funzione e la sua derivata
+% x0          Iterata iniziale
+% toll        Tolleranza sul criterio d'arresto (diff. iter. succ.)
+% nmax        Numero massimo di iterazioni
 % mol         Molteplicità assegnata allo zero. Se assegnato, permette di 
 %             applicare il metodo di Newton modificato. Default: mol = 1
 %
@@ -23,8 +23,14 @@ function [xvect,it] = newton(x0,nmax,toll,fun,dfun,mol)
 %                                         Politecnico di Milano, 04/04/2024
 %
 
-if (nargin == 5)
+if nargin < 6
     mol = 1;
+end
+if nargin < 5
+    nmax = 100;
+end
+if nargin < 4
+    toll = 1e-6;
 end
 
 err = toll + 1;
@@ -32,7 +38,7 @@ it = 0;
 xvect = x0;
 xv = x0;
 
-while (it< nmax && err> toll)
+while (it < nmax && err > toll)
    dfx = dfun(xv);
    if dfx == 0
       error(' Arresto per azzeramento di dfun');
@@ -51,6 +57,4 @@ else
     fprintf(' E` stato raggiunto il numero massimo di passi k : %d \n',it);
 end
 fprintf(' Radice calcolata       : %-12.8f \n', xvect(end));
-
-
-
+end
