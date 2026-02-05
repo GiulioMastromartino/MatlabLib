@@ -11,7 +11,9 @@ function u = bvp_mini_solver(N, coeffs, bc, method)
     h = 1/N; n = N-1;
     
     % Costruzione matrice A (tridiagonale)
-    main = zeros(n,1); low = zeros(n-1,1); up = zeros(n-1,1);
+    main = zeros(n,1); 
+    low = zeros(n-1,1); 
+    up = zeros(n-1,1);
     b = f * ones(n,1);
     
     for i=1:n
@@ -28,16 +30,33 @@ function u = bvp_mini_solver(N, coeffs, bc, method)
         row = c2 + p*c1;
         row(2) = row(2) + q;
         
+        % Riempimento vettori diagonali
+        % main: elemento diagonale A(i,i)
         main(i) = row(2);
+        
+        % low: elemento sottodiagonale A(i, i-1) -> corrisponde a coeff di u_{i-1} (row(1))
         if i>1, low(i-1) = row(1); end
+        
+        % up: elemento sopradiagonale A(i, i+1) -> corrisponde a coeff di u_{i+1} (row(3))
         if i<n, up(i) = row(3); end
         
-        % BC
+        % Termini noti (Condizioni al Bordo)
+        % Se i=1, u_{i-1} è u_0 (ua)
         if i==1, b(i) = b(i) - row(1)*ua; end
+        % Se i=n, u_{i+1} è u_N (ub)
         if i==n, b(i) = b(i) - row(3)*ub; end
     end
     
-    A = spdiags([low main up], -1:1, n, n);
+    % Correzione per spdiags:
+    % Le colonne devono essere lunghe n.
+    % La colonna -1 (sottodiagonale) deve avere A(i, i-1) in posizione i.
+    % La colonna +1 (sopradiagonale) deve avere A(i, i+1) in posizione i.
+    
+    low_col = [0; low]; % Pad all'inizio, così low(1) finisce in indice 2
+    up_col = [up; 0];   % Pad alla fine
+    
+    A = spdiags([low_col main up_col], -1:1, n, n);
+    
     u_int = A\b;
     u = [ua; u_int; ub];
 end
