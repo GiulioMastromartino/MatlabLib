@@ -345,20 +345,20 @@ tf = 10; h = 0.2;
 [tv, Ucn] = cn_linear_affine(A4, g, y0, tf, h);
 u1 = Ucn(:,2);
 uN = Ucn(:,end);
-fprintf('u1 = \n'); disp(u1);
-fprintf('uNh = \n'); disp(uN);
+fprintf('u1 = \\n'); disp(u1);
+fprintf('uNh = \\n'); disp(uN);
 
 pvals = Ucn(2,:); % p(t) è la seconda componente
 I_p = simpson_samples(tv, pvals);
-fprintf('Simpson int_0^{tf} p(t) dt ~= %.16g\n', I_p);
+fprintf('Simpson int_0^{tf} p(t) dt ~= %.16g\\n', I_p);
 
 %% ODE Punto 2: errori Eh su h_i e stima ordine
-fprintf('\n[ODE Punto2] Errori Eh e stima ordine\n');
+fprintf('\\n[ODE Punto2] Errori Eh e stima ordine\\n');
 hs = (2.^(-(1:4))) / 10; % 0.05, 0.025, ...
 Eh = zeros(size(hs));
 for ii=1:numel(hs)
     [tvi, Ui] = cn_linear_affine(A4, g, y0, tf, hs(ii));
-    Yi = exact_y(tv, tvi); %#ok<NASGU>
+    % Yi rimosso perche non definito e non usato
     % calcolo max errore
     Ei = 0;
     for k=1:numel(tvi)
@@ -367,36 +367,36 @@ for ii=1:numel(hs)
     end
     Eh(ii) = Ei;
 end
-fprintf('h = [%s]\n', num2str(hs));
-fprintf('Eh = [%s]\n', num2str(Eh));
+fprintf('h = [%s]\\n', num2str(hs));
+fprintf('Eh = [%s]\\n', num2str(Eh));
 if exist('data_analysis_toolbox','file')
     [p_est, ~, ~] = data_analysis_toolbox('roots', Eh);
-    fprintf('Stima ordine CN p ~= %.3f\n', p_est);
+    fprintf('Stima ordine CN p ~= %.3f\\n', p_est);
 end
 
 %% ODE Punto 3: stabilità assoluta (g=0) per FE, CN, Heun
-fprintf('\n[ODE Punto3] Stabilita assoluta per g=0\n');
+fprintf('\\n[ODE Punto3] Stabilita assoluta per g=0\\n');
 lam = eig(A4);
-fprintf('eig(A) = \n'); disp(lam);
+fprintf('eig(A) = \\n'); disp(lam);
 
 % CN A-stable: se Re(lam)<=0 => stabile per ogni h
 if all(real(lam) <= 0)
-    fprintf('CN: stabile per ogni h>0 (Re(lambda)<=0).\n');
+    fprintf('CN: stabile per ogni h>0 (Re(lambda)<=0).\\n');
 else
-    fprintf('CN: non garantita per ogni h (ci sono Re(lambda)>0).\n');
+    fprintf('CN: non garantita per ogni h (ci sono Re(lambda)>0).\\n');
 end
 
 % Per FE e Heun stampo h_max numerico via scan
 hscan = linspace(0,5,20001);
 hmax_FE = max_h_stable(hscan, lam, @(z) 1+z);
 hmax_Heun = max_h_stable(hscan, lam, @(z) 1+z+0.5*z.^2);
-fprintf('FE: h_max ~ %.4f (scan)\n', hmax_FE);
-fprintf('Heun: h_max ~ %.4f (scan)\n', hmax_Heun);
+fprintf('FE: h_max ~ %.4f (scan)\\n', hmax_FE);
+fprintf('Heun: h_max ~ %.4f (scan)\\n', hmax_Heun);
 
 %% ODE Punto 4: metodo multipasso implicito lineare (AM2-like)
-fprintf('\n[ODE Punto4] Metodo multipasso implicito lineare\n');
+fprintf('\\n[ODE Punto4] Metodo multipasso implicito lineare\\n');
 % è implicito perché compare f_{n+1} = A u_{n+1} + g(t_{n+1})
-fprintf('Il metodo è IMPLICITO (compare f_{n+1}).\n');
+fprintf('Il metodo è IMPLICITO (compare f_{n+1}).\\n');
 
 % Calcolo u1 con CN, poi applico multipasso
 h = 0.2;
@@ -405,10 +405,10 @@ u0 = y0;
 u1 = Ucn(:,2);
 
 [tv2, Uam] = am2_like_linear(A4, g, u0, u1, tf, h);
-fprintf('u2 =\n'); disp(Uam(:,3));
-fprintf('uNh =\n'); disp(Uam(:,end));
+fprintf('u2 =\\n'); disp(Uam(:,3));
+fprintf('uNh =\\n'); disp(Uam(:,end));
 
-fprintf('\n=== FINE ===\n');
+fprintf('\\n=== FINE ===\\n');
 
 %% ====== FUNZIONI LOCALI ======
 function [x_seq, k] = fixed_point_driver(x0, phi, nmax, tol)
@@ -526,7 +526,7 @@ function [u,x] = bvp_fd_0_4(h)
     A(n,n-1) = -1;
     rhs(n) = 0;
 
-    u_unknown = A\rhs; % gives u1..u_{m-1}
+    u_unknown = A\\rhs; % gives u1..u_{m-1}
     u = [u0; u_unknown];
 end
 
@@ -566,7 +566,7 @@ function [u,x] = bvp_upwind_0_1(h)
         end
     end
 
-    u_int = A\rhs;
+    u_int = A\\rhs;
     u = [u0; u_int; uN];
 end
 
@@ -586,7 +586,7 @@ function [t, U] = cn_linear_affine(A, g, y0, tf, h)
     for k=1:N
         tk = t(k); tk1 = t(k+1);
         rhs = K*U(:,k) + (h/2)*(g(tk) + g(tk1));
-        U(:,k+1) = Uu \ (L \ (P*rhs));
+        U(:,k+1) = Uu \\ (L \\ (P*rhs));
     end
 end
 
@@ -661,7 +661,7 @@ function [t, U] = am2_like_linear(A, g, u0, u1, tf, h)
         gkp1 = g(tkp1);
         rhs = U(:,k) + (h/12)*(-f0 + 8*f1 + 5*gkp1); % parte nota, manca 5*(A u_{k+1})
         % Risolvo: (I - 5h/12 A)u_{k+1} = rhs
-        U(:,k+1) = Uu \ (L \ (P*rhs));
+        U(:,k+1) = Uu \\ (L \\ (P*rhs));
 
         % aggiorno f_{k-1}, f_k
         f0 = f1;
