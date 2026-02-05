@@ -192,13 +192,18 @@ else
 end
 fprintf('Iterazioni effettuate (richieste 100): %d\n', k_gs);
 
-% Sequenza errori per stimare ordine (qui calcolo errori ad ogni iterazione con implementazione interna)
+% Sequenza errori per stimare fattore q asintotico
 [x_seq_gs, err_seq] = gs_history(A,b,x0,100,x_true);
-if exist('data_analysis_toolbox','file')
-    [p_est, C_est, ~] = data_analysis_toolbox('roots', err_seq);
-    fprintf('Stima ordine (asintotico) p ~= %.3f, C ~= %.3g\n', p_est, C_est);
+e = err_seq(:);
+e = e(isfinite(e) & e > 0);
+if numel(e) > 5
+    m = min(20, numel(e)-1);
+    q_est = mean(e(end-m+1:end) ./ e(end-m:end-1));
+    fprintf('GS: ordine teorico p=1, fattore asintotico q ~= %.6f\n', q_est);
+    fprintf('GS: ||e_100||_2 = %.3e\n', e(end));
+    fprintf('Nota: GS è metodo stazionario, quindi converge linearmente (p=1).\n');
 else
-    fprintf('data_analysis_toolbox.m non trovato: salto stima p.\n');
+    fprintf('GS: non abbastanza iterazioni per stimare q.\n');
 end
 
 % Punto 3: precondizionatore P(gamma) e richardson (gradiente precondizionato)
@@ -206,17 +211,35 @@ fprintf('\n[Punto 3] Gamma_opt numerico + richardson precondizionato\n');
 gammas = linspace(2,4,81);
 kappa = zeros(size(gammas));
 for i=1:numel(gammas)
+    if gammas(i) <= 2 + 1e-8
+        kappa(i) = Inf; 
+        continue;
+    end
     P = precond_P(gammas(i), n);
-    % cond del problema generalizzato A v = lambda P v
-    % Per n=100, dense eig è abbastanza veloce e più robusto di eigs
-    eigvals = eig(full(A), full(P));
-    lmax = max(eigvals);
-    lmin = min(eigvals);
-    kappa(i) = lmax / lmin;
+    
+    % Per problema generalizzato simmetrico definito positivo P:
+    % autovalori di inv(P)*A = autovalori di inv(R')*A*inv(R) dove P=R'*R
+    % Usiamo questo per stabilità numerica robusta
+    try
+        R = chol(P);
+        S = R' \ (A / R); % S è simmetrica
+        % per n=100 eig denso va benissimo ed è robusto
+        ev = eig(full(S));
+        ev = real(ev);
+        lmax = max(ev);
+        lmin = min(ev);
+        if lmin > 1e-14
+            kappa(i) = lmax / lmin;
+        else
+            kappa(i) = Inf;
+        end
+    catch
+        kappa(i) = Inf; % P non SPD
+    end
 end
-[~, idx] = min(kappa);
+[kmin, idx] = min(kappa);
 gamma_opt = gammas(idx);
-fprintf('gamma_opt (scan) ~= %.4f, kappa ~= %.4g\n', gamma_opt, kappa(idx));
+fprintf('gamma_opt (scan) ~= %.4f, kappa ~= %.4g\n', gamma_opt, kmin);
 
 Popt = precond_P(gamma_opt, n);
 x0 = b;
@@ -228,7 +251,7 @@ else
 end
 errA = sqrt((xk-x_true)' * A * (xk-x_true));
 resN = norm(A*xk - b) / norm(b);
-fprintf('k = %d, ||xk-x||_A = %.3e, residuo norm = %.3e\n', k, errA, resN);
+fprintf('Richardson: k = %d, ||xk-x||_A = %.3e, residuo norm = %.3e\n', k, errA, resN);
 
 % Punto 4: Rayleigh quotient gradient per lambda_min
 fprintf('\n[Punto 4] Rayleigh-grad per lambda_min (50 iter)\n');
