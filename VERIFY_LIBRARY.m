@@ -65,7 +65,11 @@ try
         % u(6) corrisponde a x=0.5
         if length(u) > 5
              u_mid = u(6); 
-             assert(abs(u_mid - 0.25) < 5e-2, 'Errore BVP Centrato (valore atteso 0.25)');
+             err_bvp = abs(u_mid - 0.25);
+             if err_bvp >= 5e-2
+                 error('Errore BVP Centrato (valore atteso 0.25, ottenuto %f)', u_mid);
+             end
+             assert(err_bvp < 5e-2, 'Errore BVP assertion');
         end
         fprintf('OK\n');
     else
@@ -162,8 +166,12 @@ try
     if exist('newton.m', 'file')
         [x_vect, iter] = newton(f, df, 3, 1e-6, 100, 1);
         % x_vect è un vettore di tutte le iterate, prendiamo l'ultima
-        x_final = x_vect(end);
-        assert(abs(x_final - 2) < 1e-5, 'Newton non converge a 2');
+        if ~isempty(x_vect)
+            x_final = x_vect(end);
+            assert(abs(x_final - 2) < 1e-5, 'Newton non converge a 2');
+        else
+             error('Newton ha restituito vettore vuoto');
+        end
         fprintf('OK\n');
     else
         fprintf('MANCANTE\n'); errors = errors+1;
